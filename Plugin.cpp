@@ -475,7 +475,7 @@ protected:
     }
     bool guiCreate(const char* api, bool floating) noexcept override
     {
-        return ui.guiCreate(api, floating, 640, 420);
+        return ui.guiCreate(api, floating, 640, 450);
     }
     void guiDestroy() noexcept override
     {
