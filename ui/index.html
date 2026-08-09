@@ -65,6 +65,7 @@
     .glyph path, .glyph polyline, .glyph line {
       fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
     }
+    .keyboard-glyph .black-keys { fill: currentColor; stroke: none; }
     .glyph circle { fill: currentColor; }
 
     .workspace { min-height: 0; }
@@ -142,7 +143,7 @@
           <svg class="glyph" data-visual="adsr1" viewBox="0 0 48 28" aria-hidden="true"></svg>ADSR
         </button>
         <button class="module" data-page="keyboard" aria-label="Keyboard">
-          <svg class="glyph" viewBox="0 0 48 28"><path d="M3 4 H45 V24 H3 Z M12 4 V16 M21 4 V16 M30 4 V16 M39 4 V16 M9 4 V13 H15 V4 M27 4 V13 H33 V4"/></svg>KEYBOARD
+          <svg class="glyph keyboard-glyph" viewBox="0 0 48 28"><path d="M2.5 2.5 H45.5 V25.5 H2.5 Z M11.1 2.5 V25.5 M19.7 2.5 V25.5 M28.3 2.5 V25.5 M36.9 2.5 V25.5"/><path class="black-keys" d="M8.7 2.5 H13.5 V16.5 H8.7 Z M17.3 2.5 H22.1 V16.5 H17.3 Z M34.5 2.5 H39.3 V16.5 H34.5 Z"/></svg>KEYBOARD
         </button>
       </nav>
       <compost-scope id="scope" trigger="off" samples-shown="256" value-range="1.5" aria-label="MNO output waveform"></compost-scope>
