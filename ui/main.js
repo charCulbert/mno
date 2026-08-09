@@ -221,6 +221,14 @@ function oscillatorPath(waveform, shape) {
       const phase = index / count;
       samples.push({ position: phase, phase, cycle: 0, order: 0 });
     }
+    if (waveform === 0 || waveform === 1) {
+      const control = waveform === 0 ? clamp(shape, 2, 4) : clamp(shape, 0, 2);
+      const edge = waveform === 0 ? (control - 2) / 2 : control / 2;
+      if (edge > .000001 && edge < 1 - .000001) {
+        samples.push({ position: edge, phase: edge - .000001, cycle: 0, order: -1 });
+        samples.push({ position: edge, phase: edge + .000001, cycle: 0, order: 1 });
+      }
+    }
     if (waveform === 2) {
       samples.push({ position: pulseWidth, phase: pulseWidth - .000001, cycle: 0, order: -1 });
       samples.push({ position: pulseWidth, phase: pulseWidth, cycle: 0, order: 1 });
