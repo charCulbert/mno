@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>MNO</title>
+  <style>
+    :root {
+      --line: rgba(255, 255, 255, .18);
+      color-scheme: dark;
+      font: 13px system-ui, sans-serif;
+      background: #000;
+      color: #f2f2f2;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 300px; min-height: 240px; overflow: hidden; }
+    main { height: 100vh; display: grid; grid-template-rows: 116px minmax(0, 1fr); }
+
+    .top-row {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .rail {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 4px;
+      padding: 4px 12px;
+      border-right: 1px solid var(--line);
+    }
+    .module {
+      appearance: none;
+      position: relative;
+      min-width: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: #fff;
+      opacity: .48;
+      cursor: pointer;
+      font: 650 10px ui-rounded, system-ui, sans-serif;
+      letter-spacing: .08em;
+    }
+    .module:hover, .module:focus-visible { opacity: .78; }
+    .module:focus-visible { outline: 1px solid currentColor; outline-offset: -2px; }
+    .module[aria-current="page"] { opacity: .9; }
+    .module::after {
+      content: "";
+      position: absolute;
+      left: 50%; bottom: 2px;
+      width: 12px; height: 2px;
+      border-radius: 2px;
+      background: transparent;
+      transform: translateX(-50%);
+    }
+    .module[aria-current="page"]::after { background: currentColor; }
+    .module[data-source="adsr1"] { color: #faad3d; }
+    .module[data-source="lfo1"] { color: #40dbef; }
+    .glyph { display: block; height: 32px; margin: 0 auto 1px; }
+    .glyph path, .glyph polyline, .glyph line {
+      fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .glyph circle { fill: currentColor; }
+
+    .workspace { min-height: 0; }
+    compost-scope {
+      width: 100%;
+      height: 100%;
+      --scope-height: 100%;
+      --scope-background: #000;
+      --scope-grid: transparent;
+      --scope-zero: transparent;
+      --scope-trace: #fff;
+      --scope-trigger: #fff;
+      --scope-marker: rgba(255, 255, 255, .35);
+      --scope-label: #fff;
+      --scope-border: transparent;
+    }
+    .page { width: 100%; height: 100%; overflow: auto; }
+    .page-header { height: 42px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+    .page-title { flex: 1; margin: 0; padding: 0 18px; color: #9e9e9e; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    .header-controls { height: 100%; display: flex; align-items: center; }
+    .knobs { padding: 6px 10px 8px; display: grid; grid-template-columns: repeat(3, minmax(70px, 1fr)); gap: 6px 8px; align-items: start; }
+    compost-knob {
+      width: 100%; max-width: 88px; justify-self: center;
+      --knob-text: #f2f2f2;
+      --knob-value: #999;
+      --knob-fill: #f2f2f2;
+      --knob-track: rgba(255,255,255,.22);
+      --knob-cap: #0f0f0f;
+      --knob-cap-border: rgba(255,255,255,.26);
+      --knob-indicator: #f2f2f2;
+      --knob-focus-bracket-color: #fff;
+      --knob-color-scheme: dark;
+    }
+    compost-knob.compact { width: 58px; }
+    compost-select {
+      width: 150px;
+      --compost-select-height: 42px;
+      --compost-select-bg: #080808;
+      --compost-select-border: rgba(255,255,255,.24);
+      --compost-select-text: #f2f2f2;
+      --compost-select-active-bg: #f2f2f2;
+      --compost-select-active-text: #111;
+      --compost-select-hover-bg: #222;
+      --compost-select-focus: #fff;
+    }
+    compost-select::part(button) { border-top: 0; border-right: 0; border-bottom: 0; }
+    .toggle { display: inline-flex; align-items: center; gap: 8px; color: #9e9e9e; font-size: 10px; font-weight: 650; letter-spacing: .08em; }
+    .header-controls .toggle { height: 100%; padding: 0 12px; border-left: 1px solid var(--line); }
+    .toggle input { accent-color: #f2f0eb; width: 30px; height: 18px; }
+
+    @media (max-width: 599px), (max-aspect-ratio: 1.12/1) {
+      main { grid-template-rows: 104px minmax(0, 1fr); }
+      .top-row { grid-template-columns: minmax(0, 1fr) minmax(118px, 35vw); }
+      .glyph { height: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="top-row">
+      <nav class="rail" aria-label="Synth modules">
+        <button class="module" data-page="osc1" aria-label="Oscillator 1">
+          <svg class="glyph" data-visual="osc1" viewBox="0 0 48 28" aria-hidden="true"></svg>OSC 1
+        </button>
+        <button class="module" data-page="filter" aria-label="Filter">
+          <svg class="glyph" data-visual="filter" viewBox="0 0 48 28" aria-hidden="true"></svg>FILTER
+        </button>
+        <button class="module" data-page="lfo" data-source="lfo1" aria-label="LFO">
+          <svg class="glyph" data-visual="lfo1" viewBox="0 0 48 28" aria-hidden="true"></svg>LFO
+        </button>
+        <button class="module" data-page="osc2" aria-label="Oscillator 2">
+          <svg class="glyph" data-visual="osc2" viewBox="0 0 48 28" aria-hidden="true"></svg>OSC 2
+        </button>
+        <button class="module" data-page="adsr1" data-source="adsr1" aria-label="ADSR">
+          <svg class="glyph" data-visual="adsr1" viewBox="0 0 48 28" aria-hidden="true"></svg>ADSR
+        </button>
+        <button class="module" data-page="keyboard" aria-label="Keyboard">
+          <svg class="glyph" viewBox="0 0 48 28"><path d="M3 4 H45 V24 H3 Z M12 4 V16 M21 4 V16 M30 4 V16 M39 4 V16 M9 4 V13 H15 V4 M27 4 V13 H33 V4"/></svg>KEYBOARD
+        </button>
+      </nav>
+      <compost-scope id="scope" trigger="off" samples-shown="256" value-range="1.5" aria-label="MNO output waveform"></compost-scope>
+    </section>
+    <section class="workspace">
+      <section class="page" aria-live="polite">
+        <div class="page-header">
+          <h1 class="page-title" id="page-title">Oscillator 1</h1>
+          <div class="header-controls" id="header-controls"></div>
+        </div>
+        <div class="knobs" id="knobs"></div>
+      </section>
+    </section>
+  </main>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
