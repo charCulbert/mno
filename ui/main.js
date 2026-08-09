@@ -12,7 +12,7 @@ const svgNamespace = 'http://www.w3.org/2000/svg';
 
 const pageNames = {
   osc1: 'Oscillator 1', osc2: 'Oscillator 2', filter: 'Filter',
-  adsr1: 'Envelope', lfo: 'LFO', keyboard: 'Performance'
+  adsr1: 'Envelope', lfo: 'LFO', keyboard: 'Keyboard'
 };
 const pageParameters = {
   osc1: ['osc1Shape', 'osc1Tune', 'osc1Level', 'lfoRate', 'lfoToOsc1Shape', 'lfoToOsc1Tune'],
@@ -332,7 +332,7 @@ function renderEnvelope(number) {
   else if (stage === 4) pointX = holdX + (48 - holdX) * progress;
   const current = clamp(modulation[`${prefix || 'adsr'}Value`], 0, 1);
   draw(document.querySelector(`[data-visual="adsr${number}"]`), path,
-    { x: pointX, y: 25.2 - current * 21.84 });
+    active ? { x: pointX, y: 25.2 - current * 21.84 } : null);
 }
 
 function renderModuleGraphics() {
