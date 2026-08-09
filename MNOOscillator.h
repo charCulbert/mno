@@ -110,6 +110,9 @@ public:
         return 0;
     }
 
+    // Folded-saw polarity alternates each cycle; scope on a fixed four-cycle phase.
+    int scopeCyclePhase() const noexcept { return cycleIndex & 3; }
+
     MNOOscillatorOutput next (
         float frequency,
         std::optional<float> syncOffset = std::nullopt,

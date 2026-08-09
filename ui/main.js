@@ -177,7 +177,7 @@ function mirrorFold(input) {
   return result;
 }
 
-function oscillatorSample(waveform, shape, phase) {
+function oscillatorSample(waveform, shape, phase, cycle = 0) {
   if (waveform === 0 || waveform === 1) {
     const control = waveform === 0 ? clamp(shape, 2, 4) : clamp(shape, 0, 2);
     const foldedDepth = control < 1 ? control : control < 2 ? 2 - control
@@ -186,11 +186,12 @@ function oscillatorSample(waveform, shape, phase) {
     const saw = baseSign * (1 - 2 * phase);
     const tau = 1 - foldedDepth;
     if (tau >= .999999) return saw;
-    const polarity = control < 2 ? -1 : 1;
+    const cyclePolarity = cycle % 2 === 0 ? -1 : 1;
+    const polarity = control < 2 ? cyclePolarity : -cyclePolarity;
     const folded = polarity * saw < -tau ? -saw : saw;
     return (2 * folded - polarity * (1 - tau)) / (1 + tau);
   }
-  if (waveform === 2) return phase < clamp(shape, 0, 1) ? 1 : -1;
+  if (waveform === 2) return phase < clamp(shape, .02, .98) ? 1 : -1;
   const raw = waveform === 3
     ? (phase < .5 ? phase * 4 - 1 : 3 - phase * 4)
     : Math.sin(phase * Math.PI * 2);
@@ -203,15 +204,48 @@ function oscillatorSample(waveform, shape, phase) {
   return 0;
 }
 
+function oscillatorPath(waveform, shape) {
+  const count = waveform === 5 ? 24 : 48;
+  const showsCycleEdges = waveform <= 2;
+  const pulseWidth = clamp(shape, .02, .98);
+  const lastPhase = 1 - 1 / count;
+  const boundaryBeforePhase = waveform === 2
+    ? Math.min(1 - .000001, Math.max(lastPhase, pulseWidth + .000001))
+    : lastPhase;
+  const samples = [];
+
+  if (showsCycleEdges) {
+    samples.push({ position: 0, phase: boundaryBeforePhase, cycle: -1, order: -2 });
+    samples.push({ position: 0, phase: 0, cycle: 0, order: -1 });
+    for (let index = 1; index < count; ++index) {
+      const phase = index / count;
+      samples.push({ position: phase, phase, cycle: 0, order: 0 });
+    }
+    if (waveform === 2) {
+      samples.push({ position: pulseWidth, phase: pulseWidth - .000001, cycle: 0, order: -1 });
+      samples.push({ position: pulseWidth, phase: pulseWidth, cycle: 0, order: 1 });
+    }
+    samples.push({ position: 1, phase: boundaryBeforePhase, cycle: 0, order: 0 });
+    samples.push({ position: 1, phase: 0, cycle: 1, order: 1 });
+  } else {
+    for (let index = 0; index <= count; ++index) {
+      const phase = index / count;
+      samples.push({ position: phase, phase, cycle: 0, order: 0 });
+    }
+  }
+
+  samples.sort((a, b) => a.position - b.position || a.order - b.order);
+  return samples.map(({ position, phase, cycle }, index) => {
+    const x = 1.5 + position * 45;
+    const y = 14 - oscillatorSample(waveform, shape, phase, cycle) * 12.32;
+    return `${index ? 'L' : 'M'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(' ');
+}
+
 function renderOscillator(identifier, shapeIdentifier, visualIdentifier) {
   const waveform = Math.round(value(identifier));
   const shape = modulation[shapeIdentifier] || value(shapeIdentifier);
-  const count = waveform === 5 ? 24 : 48;
-  const path = pathFromSamples(count, (phase) => {
-    const displayPhase = waveform === 0 || waveform === 1 ? (phase * 2) % 1 : phase;
-    return oscillatorSample(waveform, shape, displayPhase);
-  });
-  draw(document.querySelector(`[data-visual="${visualIdentifier}"]`), path);
+  draw(document.querySelector(`[data-visual="${visualIdentifier}"]`), oscillatorPath(waveform, shape));
 }
 
 function renderFilter() {

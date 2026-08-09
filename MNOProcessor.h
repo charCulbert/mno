@@ -644,13 +644,13 @@ public:
 
             const auto& scopeOscillatorOutput =
                 scopeUsesOscillator2 ? second : first;
+            const auto scopeCyclePhase = scopeUsesOscillator2
+                ? oscillator2.scopeCyclePhase()
+                : oscillator1.scopeCyclePhase();
             float scopeTrigger = 0.0f;
             if (scopeOscillatorOutput.trigger > 0.5f
-                && ++scopeCycleCount == scopeTriggerCyclePeriod)
-            {
-                scopeCycleCount = 0;
+                && scopeCyclePhase == 0)
                 scopeTrigger = 1.0f;
-            }
 
                 if (scopeRing != nullptr)
                     scopeRing->push (
@@ -955,7 +955,6 @@ private:
     {
         scopeTriggerDelay.fill (0.0f);
         scopeTriggerWrite = 0;
-        scopeCycleCount = 0;
     }
 
     float delayScopeTrigger (float input, int delaySamples) noexcept
@@ -972,7 +971,6 @@ private:
         return output;
     }
 
-    static constexpr int scopeTriggerCyclePeriod = 4;
     MNOOscillator oscillator1 { 12643383u };
     MNOOscillator oscillator2 { 982451653u };
     MonoController controller;
@@ -997,7 +995,6 @@ private:
     MNOModulationSnapshot latestModulationState;
     std::array<float, 32> scopeTriggerDelay {};
     size_t scopeTriggerWrite = 0;
-    int scopeCycleCount = 0;
     bool scopeUsesOscillator2 = false;
     MNOScopeRing scopeRingStorage;
     MNOScopeRing* scopeRing = &scopeRingStorage;
