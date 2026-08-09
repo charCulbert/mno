@@ -13,6 +13,7 @@
 #include <clap/helpers/plugin.hh>
 #include <clap/helpers/plugin.hxx>
 #include <clap/ext/event-registry.h>
+#include <clap/factory/preset-discovery.h>
 
 #include <algorithm>
 #include <atomic>
@@ -29,6 +30,227 @@ namespace
 {
 
 constexpr char pluginId[] = "com.charlieculbert.char-clap-example-mno";
+
+struct PresetValue
+{
+    mno::MNOParameter parameter;
+    double value;
+};
+
+struct FactoryPreset
+{
+    const char* key;
+    const char* name;
+    const char* feature;
+    const PresetValue* values;
+    size_t valueCount;
+};
+
+constexpr PresetValue warmStack[] {
+    { mno::MNOParameter::osc1Waveform, 0 },
+    { mno::MNOParameter::osc1Shape, 0.10 },
+    { mno::MNOParameter::osc1Tune, -7 },
+    { mno::MNOParameter::osc1Level, 0.68 },
+    { mno::MNOParameter::osc2Waveform, 3 },
+    { mno::MNOParameter::osc2Shape, 0.12 },
+    { mno::MNOParameter::osc2Tune, 7 },
+    { mno::MNOParameter::osc2Level, 0.32 },
+    { mno::MNOParameter::cutoff, 2800 },
+    { mno::MNOParameter::resonance, 12 },
+    { mno::MNOParameter::attack, 0.018 },
+    { mno::MNOParameter::decay, 0.55 },
+    { mno::MNOParameter::sustain, 0.70 },
+    { mno::MNOParameter::release, 0.85 },
+    { mno::MNOParameter::adsrToCutoff, 32 },
+    { mno::MNOParameter::lfoRate, 0.23 },
+    { mno::MNOParameter::lfoToOsc1Tune, 0.1 },
+    { mno::MNOParameter::lfoToOsc2Tune, -0.1 },
+    { mno::MNOParameter::velocitySensitivity, 75 },
+    { mno::MNOParameter::legato, 0 }
+};
+
+constexpr PresetValue rubberBass[] {
+    { mno::MNOParameter::osc1Waveform, 2 },
+    { mno::MNOParameter::osc1Shape, 0.38 },
+    { mno::MNOParameter::osc1Level, 0.72 },
+    { mno::MNOParameter::osc2Waveform, 2 },
+    { mno::MNOParameter::osc2Shape, 0.58 },
+    { mno::MNOParameter::osc2Tune, -1200 },
+    { mno::MNOParameter::osc2Level, 0.28 },
+    { mno::MNOParameter::cutoff, 180 },
+    { mno::MNOParameter::resonance, 20 },
+    { mno::MNOParameter::attack, 0.003 },
+    { mno::MNOParameter::decay, 0.32 },
+    { mno::MNOParameter::sustain, 0.38 },
+    { mno::MNOParameter::release, 0.12 },
+    { mno::MNOParameter::adsrToCutoff, 52 },
+    { mno::MNOParameter::lfoRate, 0.72 },
+    { mno::MNOParameter::lfoToOsc1Shape, 16 },
+    { mno::MNOParameter::lfoToOsc2Shape, -12 },
+    { mno::MNOParameter::velocitySensitivity, 70 },
+    { mno::MNOParameter::legato, 1 },
+    { mno::MNOParameter::glideTime, 0.055 }
+};
+
+constexpr PresetValue glassPluck[] {
+    { mno::MNOParameter::osc1Waveform, 3 },
+    { mno::MNOParameter::osc1Shape, 0.18 },
+    { mno::MNOParameter::osc1Level, 0.74 },
+    { mno::MNOParameter::osc2Waveform, 4 },
+    { mno::MNOParameter::osc2Shape, 0.32 },
+    { mno::MNOParameter::osc2Tune, 1200 },
+    { mno::MNOParameter::osc2Level, 0.24 },
+    { mno::MNOParameter::cutoff, 1200 },
+    { mno::MNOParameter::resonance, 26 },
+    { mno::MNOParameter::attack, 0.001 },
+    { mno::MNOParameter::decay, 0.18 },
+    { mno::MNOParameter::sustain, 0 },
+    { mno::MNOParameter::release, 0.70 },
+    { mno::MNOParameter::adsrToCutoff, 58 },
+    { mno::MNOParameter::velocitySensitivity, 100 },
+    { mno::MNOParameter::legato, 0 }
+};
+
+constexpr PresetValue slowBloom[] {
+    { mno::MNOParameter::osc1Waveform, 1 },
+    { mno::MNOParameter::osc1Shape, 0.24 },
+    { mno::MNOParameter::osc1Tune, -7 },
+    { mno::MNOParameter::osc1Level, 0.56 },
+    { mno::MNOParameter::osc2Waveform, 3 },
+    { mno::MNOParameter::osc2Shape, 0.16 },
+    { mno::MNOParameter::osc2Tune, 7 },
+    { mno::MNOParameter::osc2Level, 0.42 },
+    { mno::MNOParameter::cutoff, 600 },
+    { mno::MNOParameter::resonance, 14 },
+    { mno::MNOParameter::attack, 1.35 },
+    { mno::MNOParameter::decay, 1.8 },
+    { mno::MNOParameter::sustain, 0.76 },
+    { mno::MNOParameter::release, 3.2 },
+    { mno::MNOParameter::adsrToCutoff, 44 },
+    { mno::MNOParameter::lfoRate, 0.09 },
+    { mno::MNOParameter::lfoToOsc1Shape, 7 },
+    { mno::MNOParameter::lfoToOsc2Shape, -5 },
+    { mno::MNOParameter::lfoToCutoff, 5 },
+    { mno::MNOParameter::lfoToOsc1Tune, 0.1 },
+    { mno::MNOParameter::lfoToOsc2Tune, -0.1 },
+    { mno::MNOParameter::velocitySensitivity, 55 },
+    { mno::MNOParameter::legato, 1 },
+    { mno::MNOParameter::glideTime, 0.16 }
+};
+
+constexpr PresetValue syncLead[] {
+    { mno::MNOParameter::osc1Waveform, 0 },
+    { mno::MNOParameter::osc1Shape, 0.18 },
+    { mno::MNOParameter::osc1Level, 0.25 },
+    { mno::MNOParameter::osc2Waveform, 0 },
+    { mno::MNOParameter::osc2Shape, 0.35 },
+    { mno::MNOParameter::osc2Tune, 1200 },
+    { mno::MNOParameter::osc2Level, 0.75 },
+    { mno::MNOParameter::hardSync, 1 },
+    { mno::MNOParameter::cutoff, 1400 },
+    { mno::MNOParameter::resonance, 24 },
+    { mno::MNOParameter::attack, 0.004 },
+    { mno::MNOParameter::decay, 0.24 },
+    { mno::MNOParameter::sustain, 0.56 },
+    { mno::MNOParameter::release, 0.28 },
+    { mno::MNOParameter::adsrToCutoff, 38 },
+    { mno::MNOParameter::lfoRate, 5.4 },
+    { mno::MNOParameter::lfoToOsc1Tune, 0.1 },
+    { mno::MNOParameter::lfoToOsc2Tune, 0.1 },
+    { mno::MNOParameter::velocitySensitivity, 80 },
+    { mno::MNOParameter::legato, 1 },
+    { mno::MNOParameter::glideTime, 0.035 }
+};
+
+constexpr std::array factoryPresets {
+    FactoryPreset { "init", "Init", "instrument", nullptr, 0 },
+    FactoryPreset { "warm-stack", "Warm Stack", "keys", warmStack, std::size(warmStack) },
+    FactoryPreset { "rubber-bass", "Rubber Bass", "bass", rubberBass, std::size(rubberBass) },
+    FactoryPreset { "glass-pluck", "Glass Pluck", "pluck", glassPluck, std::size(glassPluck) },
+    FactoryPreset { "slow-bloom", "Slow Bloom", "pad", slowBloom, std::size(slowBloom) },
+    FactoryPreset { "sync-lead", "Sync Lead", "lead", syncLead, std::size(syncLead) }
+};
+
+constexpr char presetProviderId[] = "com.charlieculbert.char-clap-example-mno.presets";
+const clap_preset_discovery_provider_descriptor_t presetProviderDescriptor {
+    CLAP_VERSION, presetProviderId, "MNO Factory Presets", "Charlie Culbert"
+};
+
+struct PresetProvider
+{
+    clap_preset_discovery_provider_t interface;
+    const clap_preset_discovery_indexer_t* indexer;
+};
+
+bool CLAP_ABI presetProviderInit(const clap_preset_discovery_provider_t* provider)
+{
+    const auto& self = *static_cast<const PresetProvider*>(provider->provider_data);
+    if (self.indexer == nullptr || self.indexer->declare_location == nullptr) return false;
+    const clap_preset_discovery_location_t location {
+        CLAP_PRESET_DISCOVERY_IS_FACTORY_CONTENT,
+        "MNO Factory Presets",
+        CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN,
+        nullptr
+    };
+    return self.indexer->declare_location(self.indexer, &location);
+}
+
+void CLAP_ABI presetProviderDestroy(const clap_preset_discovery_provider_t* provider)
+{
+    delete static_cast<PresetProvider*>(provider->provider_data);
+}
+
+bool CLAP_ABI presetProviderGetMetadata(
+    const clap_preset_discovery_provider_t*, uint32_t locationKind, const char* location,
+    const clap_preset_discovery_metadata_receiver_t* receiver)
+{
+    if (locationKind != CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN || location != nullptr
+        || receiver == nullptr || receiver->begin_preset == nullptr)
+        return false;
+
+    const clap_universal_plugin_id_t universalId { "clap", pluginId };
+    for (const auto& preset : factoryPresets)
+    {
+        if (!receiver->begin_preset(receiver, preset.name, preset.key)) return false;
+        if (receiver->add_plugin_id) receiver->add_plugin_id(receiver, &universalId);
+        if (receiver->add_feature) receiver->add_feature(receiver, preset.feature);
+    }
+    return true;
+}
+
+const void* CLAP_ABI presetProviderExtension(
+    const clap_preset_discovery_provider_t*, const char*)
+{
+    return nullptr;
+}
+
+uint32_t CLAP_ABI presetProviderCount(const clap_preset_discovery_factory_t*) { return 1; }
+
+const clap_preset_discovery_provider_descriptor_t* CLAP_ABI presetProviderGetDescriptor(
+    const clap_preset_discovery_factory_t*, uint32_t index)
+{
+    return index == 0 ? &presetProviderDescriptor : nullptr;
+}
+
+const clap_preset_discovery_provider_t* CLAP_ABI presetProviderCreate(
+    const clap_preset_discovery_factory_t*, const clap_preset_discovery_indexer_t* indexer,
+    const char* providerId)
+{
+    if (indexer == nullptr || providerId == nullptr
+        || std::strcmp(providerId, presetProviderId) != 0)
+        return nullptr;
+    auto* provider = new PresetProvider {};
+    provider->interface = {
+        &presetProviderDescriptor, provider, presetProviderInit, presetProviderDestroy,
+        presetProviderGetMetadata, presetProviderExtension
+    };
+    provider->indexer = indexer;
+    return &provider->interface;
+}
+
+const clap_preset_discovery_factory_t presetDiscoveryFactory {
+    presetProviderCount, presetProviderGetDescriptor, presetProviderCreate
+};
 
 enum class EditType : uint8_t { begin, value, end };
 struct Edit { EditType type; clap_id id; double value; };
@@ -174,6 +396,35 @@ protected:
     }
 
     bool implementsState() const noexcept override { return true; }
+
+    bool implementsPresetLoad() const noexcept override { return true; }
+
+    bool presetLoadFromLocation(uint32_t locationKind, const char* location,
+                                const char* loadKey) noexcept override
+    {
+        if (locationKind != CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN || location != nullptr
+            || loadKey == nullptr)
+            return false;
+        const auto preset = std::find_if(factoryPresets.begin(), factoryPresets.end(),
+                                         [loadKey](const auto& candidate)
+                                         {
+                                             return std::strcmp(candidate.key, loadKey) == 0;
+                                         });
+        if (preset == factoryPresets.end()) return false;
+
+        for (size_t i = 0; i < mno::parameterCount; ++i)
+            processor.parameter(i).publishBaseFromMainThread(
+                mno::mnoParameterEndpoints[i].defaultValue);
+        for (size_t i = 0; i < preset->valueCount; ++i)
+        {
+            const auto& value = preset->values[i];
+            processor.parameter(static_cast<size_t>(value.parameter))
+                .publishBaseFromMainThread(value.value);
+        }
+        if (hostState) hostState->mark_dirty(host);
+        notifyValuesChanged();
+        return true;
+    }
 
     bool stateSave(const clap_ostream_t* stream) noexcept override
     {
@@ -525,7 +776,11 @@ void entryDeinit() { common::resourceRoot.clear(); }
 
 const void* entryGetFactory(const char* factoryId)
 {
-    if (!factoryId || std::strcmp(factoryId, CLAP_PLUGIN_FACTORY_ID) != 0) return nullptr;
+    if (!factoryId) return nullptr;
+    if (std::strcmp(factoryId, CLAP_PRESET_DISCOVERY_FACTORY_ID) == 0
+        || std::strcmp(factoryId, CLAP_PRESET_DISCOVERY_FACTORY_ID_COMPAT) == 0)
+        return &presetDiscoveryFactory;
+    if (std::strcmp(factoryId, CLAP_PLUGIN_FACTORY_ID) != 0) return nullptr;
     static const clap_plugin_factory_t factory { pluginCount, pluginDescriptor, createPlugin };
     return &factory;
 }
