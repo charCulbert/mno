@@ -47,7 +47,7 @@ struct MNOKey
 class MNOScopeRing
 {
 public:
-    // Holds four cycles of the on-screen keyboard's lowest note (C1)
+    // Holds two cycles of the on-screen keyboard's lowest note (C1)
     // at the app's supported maximum 96 kHz sample rate.
     static constexpr size_t capacity = 16384;
     static constexpr size_t triggerHistoryCapacity = 512;
@@ -173,7 +173,7 @@ public:
     }
 
 private:
-    // At 48 kHz a four-cycle window drops below this around F#5/C6,
+    // At 48 kHz a two-cycle window drops below this around F#4/G4,
     // where individual sample-to-sample segments become visible.
     static constexpr uint64_t sparseDisplaySampleThreshold = 256;
 
