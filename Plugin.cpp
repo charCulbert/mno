@@ -298,7 +298,8 @@ protected:
         const auto result = processor.process(*process, rampEventSpace);
         if (containsParameterValue(process->in_events)) requestUIValues();
         emitEdits(char_clap::ProcessView { *process }.outputEvents());
-        if (uiReady.load(std::memory_order_acquire))
+        if (uiReady.load(std::memory_order_acquire)
+            && uiVisible.load(std::memory_order_acquire))
         {
             telemetryFrames += process->frames_count;
             if (telemetryFrames >= telemetryInterval)
@@ -479,11 +480,27 @@ protected:
     }
     void guiDestroy() noexcept override
     {
+        uiVisible.store(false, std::memory_order_release);
         uiReady.store(false, std::memory_order_release);
+        telemetryDirty.store(false, std::memory_order_release);
         ui.guiDestroy();
     }
-    bool guiShow() noexcept override { return ui.guiShow(); }
-    bool guiHide() noexcept override { return ui.guiHide(); }
+    bool guiShow() noexcept override
+    {
+        if (!ui.guiShow()) return false;
+        uiVisible.store(true, std::memory_order_release);
+        if (uiReady.load(std::memory_order_acquire)
+            && !telemetryDirty.exchange(true, std::memory_order_acq_rel))
+            host->request_callback(host);
+        return true;
+    }
+    bool guiHide() noexcept override
+    {
+        if (!ui.guiHide()) return false;
+        uiVisible.store(false, std::memory_order_release);
+        telemetryDirty.store(false, std::memory_order_release);
+        return true;
+    }
     bool guiGetSize(uint32_t* width, uint32_t* height) noexcept override
     {
         return ui.guiGetSize(width, height);
@@ -520,7 +537,9 @@ protected:
     void onMainThread() noexcept override
     {
         if (uiDirty.exchange(false, std::memory_order_acq_rel)) sendValues();
-        if (telemetryDirty.exchange(false, std::memory_order_acq_rel)) sendTelemetry();
+        if (telemetryDirty.exchange(false, std::memory_order_acq_rel)
+            && uiVisible.load(std::memory_order_acquire))
+            sendTelemetry();
     }
 
 private:
@@ -549,7 +568,7 @@ private:
             uiDirty.store(false, std::memory_order_release);
             sendMetadata();
             sendValues();
-            sendTelemetry();
+            if (uiVisible.load(std::memory_order_acquire)) sendTelemetry();
             return true;
         }
         const std::string text(message);
@@ -738,6 +757,7 @@ private:
     clap::helpers::ParamQueue<Edit, 128> edits;
     std::atomic<bool> uiDirty { true };
     std::atomic<bool> uiReady { false };
+    std::atomic<bool> uiVisible { false };
     std::atomic<bool> telemetryDirty { false };
     uint16_t rampEventSpace = UINT16_MAX;
     uint32_t telemetryInterval = 1600;
