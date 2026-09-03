@@ -77,7 +77,6 @@
       --scope-grid: transparent;
       --scope-zero: transparent;
       --scope-trace: #fff;
-      --scope-trigger: #fff;
       --scope-marker: rgba(255, 255, 255, .35);
       --scope-label: #fff;
       --scope-border: transparent;
@@ -87,31 +86,44 @@
     .page-title { flex: 1; margin: 0; padding: 0 18px; color: #9e9e9e; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
     .header-controls { height: 100%; display: flex; align-items: center; }
     .knobs { padding: 10px 10px 8px; display: grid; grid-template-columns: repeat(3, minmax(70px, 1fr)); gap: 6px 8px; align-items: start; }
+    /* compost >= Sep 2026: controls take colour/font from the page and expose
+       ::part() hooks instead of the old --knob-* palette. Reproduce the earlier
+       MNO look (white arc on a dark cap, 76px dial, 7px ring) on top of that. */
     compost-knob {
       width: 100%; max-width: 88px; justify-self: center;
-      --knob-text: #f2f2f2;
-      --knob-value: #999;
-      --knob-fill: #f2f2f2;
-      --knob-track: rgba(255,255,255,.22);
-      --knob-cap: #0f0f0f;
-      --knob-cap-border: rgba(255,255,255,.26);
-      --knob-indicator: #f2f2f2;
-      --knob-focus-bracket-color: #fff;
-      --knob-color-scheme: dark;
+      color: #f2f2f2;                 /* label, indicator, cap border, track tint */
+      --compost-accent: #f2f2f2;      /* value arc (was --knob-fill) */
+      --knob-dial-size: 76px;         /* old default geometry */
+      --knob-ring-width: 7px;
     }
+    compost-knob::part(cap) { background: #0f0f0f; border-color: rgba(255, 255, 255, .26); }
+    compost-knob::part(value) { color: #999; }
     compost-knob.compact { width: 58px; }
-    compost-select {
-      width: 150px;
-      --compost-select-height: 42px;
-      --compost-select-bg: #080808;
-      --compost-select-border: rgba(255,255,255,.24);
-      --compost-select-text: #f2f2f2;
-      --compost-select-active-bg: #f2f2f2;
-      --compost-select-active-text: #111;
-      --compost-select-hover-bg: #222;
-      --compost-select-focus: #fff;
+    /* Waveform pickers: a dark 42px button opening a compost-popup menu, in
+       place of the native <select> that new compost's compost-select renders. */
+    mno-select { display: block; width: 150px; height: 100%; color: #f2f2f2; --compost-accent: #f2f2f2; }
+    .mno-select-button {
+      appearance: none; box-sizing: border-box; width: 100%; height: 42px;
+      padding: 0 28px 0 12px; text-align: left;
+      border: 0; border-left: 1px solid rgba(255, 255, 255, .24); border-radius: 0;
+      background: #080808; color: inherit; font: inherit; cursor: pointer;
+      background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                        linear-gradient(135deg, currentColor 50%, transparent 50%);
+      background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+      background-size: 5px 5px; background-repeat: no-repeat;
     }
-    compost-select::part(button) { border-top: 0; border-right: 0; border-bottom: 0; }
+    .mno-select-button:hover { background-color: #222; }
+    .mno-select-button:focus-visible { outline: 1px solid #fff; outline-offset: -1px; }
+    compost-popup {
+      --compost-popup-bg: #080808;
+      --compost-popup-text: #f2f2f2;
+      --compost-popup-border: rgba(255, 255, 255, .24);
+      --compost-popup-hover-bg: #222;
+      --compost-popup-active-text: #f2f2f2;
+      --compost-popup-font-size: 13px;
+      --compost-popup-min-width: 150px;
+    }
+    compost-popup::part(menu) { border-radius: 0; }
     .toggle { display: inline-flex; align-items: center; gap: 8px; color: #9e9e9e; font-size: 10px; font-weight: 650; letter-spacing: .08em; }
     .header-controls .toggle { height: 100%; padding: 0 12px; border-left: 1px solid var(--line); }
     .toggle input { accent-color: #f2f0eb; width: 30px; height: 18px; }

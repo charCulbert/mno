@@ -1,6 +1,6 @@
 import './compost/components/compost-knob.js';
 import './compost/components/compost-scope.js';
-import './compost/components/compost-select.js';
+import './compost/components/compost-popup.js';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -77,17 +77,63 @@ function knob(identifier, label = null, compact = false) {
   return control;
 }
 
+// A styled dropdown: a button that opens a compost-popup menu. Exposes
+// `value` and fires `change` like the native select it replaces, so the
+// parameter plumbing below does not care which one it is talking to.
+class MnoSelect extends HTMLElement {
+  #options = [];
+  #value = '';
+  #button;
+  #popup;
+
+  connectedCallback() {
+    if (this.#button) return;
+    this.#button = document.createElement('button');
+    this.#button.type = 'button';
+    this.#button.className = 'mno-select-button';
+    this.#button.setAttribute('aria-haspopup', 'menu');
+    if (this.hasAttribute('aria-label'))
+      this.#button.setAttribute('aria-label', this.getAttribute('aria-label'));
+    this.#popup = document.createElement('compost-popup');
+    if (this.hasAttribute('aria-label'))
+      this.#popup.setAttribute('label', this.getAttribute('aria-label'));
+    this.#popup.addEventListener('popup-select', ({ detail }) => {
+      if (detail.value === this.#value) return;
+      this.value = detail.value;
+      this.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    this.#button.addEventListener('click', () => this.#popup.open({ anchor: this.#button }));
+    this.append(this.#button, this.#popup);
+    this.#render();
+  }
+
+  setOptions(labels) {
+    this.#options = labels.map((label, index) => ({ value: String(index), label }));
+    this.#render();
+  }
+
+  get value() { return this.#value; }
+  set value(next) {
+    this.#value = String(Math.round(Number(next)));
+    this.#render();
+  }
+
+  #render() {
+    if (!this.#button) return;
+    this.#popup.setItems(this.#options.map((option) => ({ ...option, selected: option.value === this.#value })));
+    this.#popup.value = this.#value;
+    const current = this.#options.find((option) => option.value === this.#value);
+    this.#button.textContent = current ? current.label : '';
+  }
+}
+customElements.define('mno-select', MnoSelect);
+
 function select(identifier, label, options) {
   const spec = parameter(identifier);
-  const control = document.createElement('compost-select');
+  const control = document.createElement('mno-select');
   control.setAttribute('aria-label', label);
   control.setAttribute('parameter-id', spec.id);
-  for (const [optionValue, text] of options.entries()) {
-    const option = document.createElement('option');
-    option.value = String(optionValue);
-    option.textContent = text;
-    control.append(option);
-  }
+  control.setOptions(options);
   control.value = String(Math.round(value(identifier)));
   control.addEventListener('change', () => edit(identifier, Number(control.value)));
   return control;
