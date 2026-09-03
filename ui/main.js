@@ -350,7 +350,12 @@ addEventListener('parameter-edit', ({ detail }) => {
   send(`value:${detail.parameterID}:${detail.value}`);
   renderModuleGraphics();
 });
-addEventListener('parameter-end', ({ detail }) => send(`end:${detail.parameterID}`));
+addEventListener('parameter-end', ({ detail }) => {
+  // Escape cancels a gesture: compost resets the control to its start value and
+  // reports it only here, so resend it or the plugin keeps the last dragged value.
+  if (detail.cancelled) send(`value:${detail.parameterID}:${detail.value}`);
+  send(`end:${detail.parameterID}`);
+});
 
 addEventListener('message', ({ data }) => {
   const text = decoder.decode(data);
