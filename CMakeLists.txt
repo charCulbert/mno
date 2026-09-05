@@ -64,7 +64,7 @@ endif()
 include("${CHAR_CLAP_UTILS_ROOT}/cmake/CharClapWebUI.cmake")
 
 set(MNO_OUTPUT_NAME "MNO")
-set(MNO_PLUGIN_ID "com.charlieculbert.char-clap-example-mno")
+set(MNO_PLUGIN_ID "com.charlieculbert.mno")
 
 char_clap_stage_web_ui(mno
     SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/ui"

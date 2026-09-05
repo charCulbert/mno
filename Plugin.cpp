@@ -29,7 +29,7 @@ namespace example::mno_plugin
 namespace
 {
 
-constexpr char pluginId[] = "com.charlieculbert.char-clap-example-mno";
+constexpr char pluginId[] = "com.charlieculbert.mno";
 
 struct PresetValue
 {
@@ -171,7 +171,7 @@ constexpr std::array factoryPresets {
     FactoryPreset { "sync-lead", "Sync Lead", "lead", syncLead, std::size(syncLead) }
 };
 
-constexpr char presetProviderId[] = "com.charlieculbert.char-clap-example-mno.presets";
+constexpr char presetProviderId[] = "com.charlieculbert.mno.presets";
 const clap_preset_discovery_provider_descriptor_t presetProviderDescriptor {
     CLAP_VERSION, presetProviderId, "MNO Factory Presets", "Charlie Culbert"
 };
