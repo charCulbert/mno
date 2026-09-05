@@ -36,13 +36,13 @@ set(CHARDSP_ROOT "${external}/chardsp" CACHE PATH "chardsp")
 set(COMPOST_ROOT "${external}/compost" CACHE PATH "compost web components")
 foreach(root IN ITEMS CLAP_SDK_ROOT CLAP_HELPERS_ROOT CLAP_WRAPPER_ROOT CLAP_WRAPPER_CHOC_ROOT
                       CHAR_CLAP_UTILS_ROOT CHARDSP_ROOT COMPOST_ROOT)
-    if(NOT EXISTS "${${root}}/CMakeLists.txt" AND NOT EXISTS "${${root}}/package.json")
+    if(NOT EXISTS "${${root}}/CMakeLists.txt" AND NOT EXISTS "${${root}}/package.json"
+       AND NOT EXISTS "${${root}}/include/char_clap_utils/WebUI.h")
         message(FATAL_ERROR
             "${root} is empty or missing: ${${root}}\n"
             "Run `git submodule update --init` or point ${root} at a checkout.")
     endif()
 endforeach()
-set(CHAR_CLAP_UTILS_CHOC_ROOT "${CLAP_WRAPPER_CHOC_ROOT}" CACHE PATH "CHOC for char-clap-utils::webview")
 
 # Guarded so this file also works when MNO is added as a subdirectory of a
 # larger build that already provides these targets.
@@ -55,33 +55,28 @@ endif()
 if(NOT TARGET clap-wrapper-extensions)
     add_subdirectory("${CLAP_WRAPPER_ROOT}" clap-wrapper EXCLUDE_FROM_ALL)
 endif()
-if(NOT TARGET char-clap-utils)
-    add_subdirectory("${CHAR_CLAP_UTILS_ROOT}" char-clap-utils EXCLUDE_FROM_ALL)
-endif()
 if(NOT TARGET chardsp)
     add_subdirectory("${CHARDSP_ROOT}" chardsp EXCLUDE_FROM_ALL)
 endif()
-include("${CHAR_CLAP_UTILS_ROOT}/cmake/CharClapWebUI.cmake")
 
 set(MNO_OUTPUT_NAME "MNO")
 set(MNO_PLUGIN_ID "com.charlieculbert.mno")
 
+include("${CHAR_CLAP_UTILS_ROOT}/cmake/CharClapWebUI.cmake")
 char_clap_stage_web_ui(mno
     SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/ui"
     COMPOST_ROOT "${COMPOST_ROOT}"
     COMPONENTS knob scope popup)
 
 add_library(mno-impl STATIC Plugin.cpp MNOProcessor.cpp)
-target_include_directories(mno-impl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(mno-impl PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}" "${CHAR_CLAP_UTILS_ROOT}/include")
 target_link_libraries(mno-impl PUBLIC
     clap
     clap-helpers
     clap-wrapper-extensions
-    char-clap-utils::char-clap-utils
     chardsp::chardsp)
-if(TARGET char-clap-utils-webview)
-    target_link_libraries(mno-impl PUBLIC char-clap-utils::webview)
-endif()
+char_clap_add_native_webview(mno-impl "${CLAP_WRAPPER_CHOC_ROOT}")
 add_dependencies(mno-impl mno-resources)
 
 if(ANY_WASM_TOOLCHAIN)
@@ -153,7 +148,9 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING AND NOT ANY_WASM_TOOLCHAIN AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    find_package(Threads REQUIRED)
     add_executable(mno-tests tests/MNOTests.cpp)
-    target_link_libraries(mno-tests PRIVATE mno-impl)
+    target_link_libraries(mno-tests PRIVATE mno-impl Threads::Threads)
     add_test(NAME mno-tests COMMAND mno-tests)
+    set_tests_properties(mno-tests PROPERTIES TIMEOUT 30)
 endif()

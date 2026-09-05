@@ -7,11 +7,13 @@
 #include <clap/factory/preset-discovery.h>
 
 #include <array>
+#include <atomic>
 #include <algorithm>
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace
@@ -140,6 +142,62 @@ struct InputEvents
 };
 
 bool CLAP_ABI discardEvent(const clap_output_events_t*, const clap_event_header_t*) { return true; }
+
+void testParameterPublication()
+{
+    const mno::ParameterDefinition definition { 0, "Test", "", 0, -100000.0, 100000.0, 0.0 };
+    mno::ParameterRenderState parameter;
+    parameter.bind(definition);
+    check(!parameter.consumePublishedBaseOnAudioThread());
+    parameter.publishBaseFromMainThread(1.0);
+    parameter.publishBaseFromMainThread(2.0);
+    check(parameter.consumePublishedBaseOnAudioThread());
+    check(parameter.nextGlobalValue() == 2.0);
+    parameter.applyAutomatedBase(3.0);
+    check(!parameter.consumePublishedBaseOnAudioThread());
+    check(parameter.baseValueForMainThread() == 3.0);
+    parameter.beginRamp(5.0, 2);
+    check(parameter.nextGlobalValue() == 4.0);
+    check(parameter.nextGlobalValue() == 5.0);
+    parameter.applyHostGlobalModulation(1.0);
+    parameter.publishBaseFromMainThread(6.0);
+    parameter.bind(definition);
+    check(!parameter.consumePublishedBaseOnAudioThread());
+    check(parameter.nextGlobalValue() == 0.0);
+    check(parameter.baseValueForMainThread() == 0.0);
+
+    constexpr uint32_t iterations = 100000;
+    std::atomic<bool> started { false }, mainDone { false };
+    std::thread audio([&]
+    {
+        double previous = 0.0;
+        started.store(true);
+        while (previous < iterations)
+        {
+            if (parameter.consumePublishedBaseOnAudioThread())
+            {
+                const auto value = parameter.nextGlobalValue();
+                // UI updates may coalesce, but must not replay over newer automation.
+                check(value > previous && value <= iterations && std::floor(value) == value);
+                previous = value;
+                parameter.applyAutomatedBase(-value);
+            }
+            check(parameter.nextGlobalValue() == -previous);
+        }
+        while (!mainDone.load()) std::this_thread::yield();
+        parameter.applyAutomatedBase(-previous);
+    });
+    while (!started.load()) std::this_thread::yield();
+    for (uint32_t i = 1; i <= iterations; ++i)
+    {
+        parameter.publishBaseFromMainThread(i);
+        const auto displayed = parameter.baseValueForMainThread();
+        check(std::isfinite(displayed) && std::abs(displayed) <= iterations);
+    }
+    mainDone.store(true);
+    audio.join();
+    check(parameter.baseValueForMainThread() == -double(iterations));
+}
 
 void testMNOProcessorAndParameters()
 {
@@ -352,6 +410,7 @@ int main()
     check(example::mno_plugin::entryInit("."));
     testFactory(example::mno_plugin::entryGetFactory(CLAP_PLUGIN_FACTORY_ID),
                 example::mno_plugin::descriptor().id);
+    testParameterPublication();
     testMNOProcessorAndParameters();
     testMNOScopeCyclePhase();
     example::mno_plugin::entryDeinit();

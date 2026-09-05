@@ -46,6 +46,7 @@ struct ParameterDefinition
     ParameterParser parse = nullptr;
 };
 
+// Bind while stopped; publish/read UI values on main, render and automate on audio.
 class ParameterRenderState
 {
 public:
@@ -53,27 +54,29 @@ public:
     {
         definition = &next;
         published.store(next.defaultValue);
-        mainBase.store(next.defaultValue);
+        mainBase = lastReportedBase = next.defaultValue;
+        (void) published.tryLoad(mainBase, consumedGeneration);
         audioBase.store(next.defaultValue);
+        latestIsMain.store(1, std::memory_order_release);
         automated = rendered = current = rampTarget = next.defaultValue;
+        modulation = rampIncrement = 0.0;
+        rampFrames = 0;
     }
 
     void publishBaseFromMainThread(double value) noexcept
     {
         const auto next = clamp(value);
         published.store(next);
-        publishedGeneration.fetch_add(1, std::memory_order_release);
-        mainBase.store(next);
-        mainSequence.store(sequence.fetch_add(1, std::memory_order_acq_rel) + 1,
-                           std::memory_order_release);
+        mainBase = lastReportedBase = next;
+        latestIsMain.store(1, std::memory_order_release);
     }
 
     bool consumePublishedBaseOnAudioThread() noexcept
     {
-        const auto generation = publishedGeneration.load(std::memory_order_acquire);
-        if (generation == consumedGeneration) return false;
         double value = 0.0;
-        if (!published.tryLoad(value)) return false;
+        uint32_t generation = 0;
+        if (!published.tryLoad(value, generation) || generation == consumedGeneration)
+            return false;
         consumedGeneration = generation;
         applyAutomatedBase(value);
         return true;
@@ -84,8 +87,7 @@ public:
         automated = rendered = current = clamp(value);
         rampFrames = 0;
         audioBase.store(automated);
-        audioSequence.store(sequence.fetch_add(1, std::memory_order_acq_rel) + 1,
-                            std::memory_order_release);
+        latestIsMain.store(0, std::memory_order_release);
     }
 
     void applyHostGlobalModulation(double amount) noexcept { modulation = amount; }
@@ -98,8 +100,7 @@ public:
             ? 0.0 : (rampTarget - rendered) / static_cast<double>(durationFrames);
         if (durationFrames == 0) automated = rendered = rampTarget;
         audioBase.store(rampTarget);
-        audioSequence.store(sequence.fetch_add(1, std::memory_order_acq_rel) + 1,
-                            std::memory_order_release);
+        latestIsMain.store(0, std::memory_order_release);
     }
 
     double nextGlobalValue() noexcept
@@ -117,9 +118,10 @@ public:
 
     double baseValueForMainThread() const noexcept
     {
-        return mainSequence.load(std::memory_order_acquire)
-                   > audioSequence.load(std::memory_order_acquire)
-            ? mainBase.load() : audioBase.load();
+        if (latestIsMain.load(std::memory_order_acquire) != 0) return mainBase;
+        // Keep the last stable value if an audio-thread write is in progress.
+        (void) audioBase.tryLoad(lastReportedBase);
+        return lastReportedBase;
     }
 
 private:
@@ -132,13 +134,11 @@ private:
 
     const ParameterDefinition* definition = nullptr;
     char_clap::detail::PublishedDouble published;
-    char_clap::detail::PublishedDouble mainBase;
     char_clap::detail::PublishedDouble audioBase;
-    std::atomic<uint32_t> publishedGeneration { 0 };
+    double mainBase = 0.0;
+    mutable double lastReportedBase = 0.0;
+    std::atomic<uint32_t> latestIsMain { 1 };
     uint32_t consumedGeneration = 0;
-    std::atomic<uint32_t> sequence { 0 };
-    std::atomic<uint32_t> mainSequence { 0 };
-    std::atomic<uint32_t> audioSequence { 0 };
     double automated = 0.0;
     double rendered = 0.0;
     double current = 0.0;
