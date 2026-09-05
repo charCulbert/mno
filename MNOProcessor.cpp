@@ -1,5 +1,7 @@
 #include "MNOProcessor.h"
 
+#include "char_clap_utils/AUv3Ramp.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -115,14 +117,14 @@ void MNOProcessor::handleEvent (
     uint16_t rampSpace) noexcept
 {
     if (event.space_id == rampSpace
-        && event.type == mno::parameterRampEventType
-        && event.size >= sizeof (mno::ParameterRampEvent))
+        && event.type == char_clap::rampEventType
+        && event.size >= sizeof (char_clap::RampEvent))
     {
         const auto& ramp =
-            reinterpret_cast<const mno::ParameterRampEvent&> (event);
-        if (const auto index = parameterIndex (ramp.paramId); index >= 0)
+            reinterpret_cast<const char_clap::RampEvent&> (event);
+        if (const auto index = parameterIndex (ramp.parameterId); index >= 0)
             parameters[static_cast<std::size_t> (index)].beginRamp (
-                ramp.targetValue, ramp.durationFrames);
+                ramp.target, ramp.durationFrames);
         return;
     }
 

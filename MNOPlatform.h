@@ -15,11 +15,9 @@
 
 #include <clap/clap.h>
 
-#include <algorithm>
-#include <atomic>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 namespace mno
 {
@@ -52,110 +50,28 @@ class ParameterRenderState
 public:
     void bind(const ParameterDefinition& next) noexcept
     {
-        definition = &next;
-        published.store(next.defaultValue);
-        mainBase = lastReportedBase = next.defaultValue;
-        (void) published.tryLoad(mainBase, consumedGeneration);
-        audioBase.store(next.defaultValue);
-        latestIsMain.store(1, std::memory_order_release);
-        automated = rendered = current = rampTarget = next.defaultValue;
-        modulation = rampIncrement = 0.0;
-        rampFrames = 0;
+        state.emplace(next.minimum, next.maximum, next.defaultValue);
+        current = state->clamp(next.defaultValue);
     }
 
-    void publishBaseFromMainThread(double value) noexcept
-    {
-        const auto next = clamp(value);
-        published.store(next);
-        mainBase = lastReportedBase = next;
-        latestIsMain.store(1, std::memory_order_release);
-    }
-
-    bool consumePublishedBaseOnAudioThread() noexcept
-    {
-        double value = 0.0;
-        uint32_t generation = 0;
-        if (!published.tryLoad(value, generation) || generation == consumedGeneration)
-            return false;
-        consumedGeneration = generation;
-        applyAutomatedBase(value);
-        return true;
-    }
+    void publishBaseFromMainThread(double value) noexcept { state->publishBase(value); }
+    bool consumePublishedBaseOnAudioThread() noexcept { return state->consumePublishedBase(); }
 
     void applyAutomatedBase(double value) noexcept
     {
-        automated = rendered = current = clamp(value);
-        rampFrames = 0;
-        audioBase.store(automated);
-        latestIsMain.store(0, std::memory_order_release);
+        state->setAutomatedBase(value);
+        current = state->clamp(value);
     }
 
-    void applyHostGlobalModulation(double amount) noexcept { modulation = amount; }
-
-    void beginRamp(double target, uint32_t durationFrames) noexcept
-    {
-        rampTarget = clamp(target);
-        rampFrames = durationFrames;
-        rampIncrement = durationFrames == 0
-            ? 0.0 : (rampTarget - rendered) / static_cast<double>(durationFrames);
-        if (durationFrames == 0) automated = rendered = rampTarget;
-        audioBase.store(rampTarget);
-        latestIsMain.store(0, std::memory_order_release);
-    }
-
-    double nextGlobalValue() noexcept
-    {
-        if (rampFrames != 0)
-        {
-            rendered += rampIncrement;
-            if (--rampFrames == 0) rendered = rampTarget;
-        }
-        current = clamp(rendered + modulation);
-        return current;
-    }
-
+    void applyHostGlobalModulation(double amount) noexcept { state->setGlobalModulation(amount); }
+    void beginRamp(double target, uint32_t frames) noexcept { state->beginTimedRamp(target, frames); }
+    double nextGlobalValue() noexcept { return current = state->nextValue(); }
     double currentGlobalValue() const noexcept { return current; }
-
-    double baseValueForMainThread() const noexcept
-    {
-        if (latestIsMain.load(std::memory_order_acquire) != 0) return mainBase;
-        // Keep the last stable value if an audio-thread write is in progress.
-        (void) audioBase.tryLoad(lastReportedBase);
-        return lastReportedBase;
-    }
+    double baseValueForMainThread() const noexcept { return state->baseValueForMainThread(); }
 
 private:
-    double clamp(double value) const noexcept
-    {
-        if (definition == nullptr) return 0.0;
-        if (!std::isfinite(value)) value = definition->minimum;
-        return std::clamp(value, definition->minimum, definition->maximum);
-    }
-
-    const ParameterDefinition* definition = nullptr;
-    char_clap::detail::PublishedDouble published;
-    char_clap::detail::PublishedDouble audioBase;
-    double mainBase = 0.0;
-    mutable double lastReportedBase = 0.0;
-    std::atomic<uint32_t> latestIsMain { 1 };
-    uint32_t consumedGeneration = 0;
-    double automated = 0.0;
-    double rendered = 0.0;
+    std::optional<char_clap::ParameterState> state;
     double current = 0.0;
-    double modulation = 0.0;
-    double rampTarget = 0.0;
-    double rampIncrement = 0.0;
-    uint32_t rampFrames = 0;
-};
-
-constexpr uint16_t parameterRampEventType = 0;
-
-struct ParameterRampEvent
-{
-    clap_event_header_t header;
-    clap_id paramId;
-    double targetValue;
-    uint32_t durationFrames;
 };
 
 } // namespace mno

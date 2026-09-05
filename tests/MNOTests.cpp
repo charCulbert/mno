@@ -1,6 +1,7 @@
 #include "Plugin.h"
 
 #include "MNOProcessor.h"
+#include "char_clap_utils/AUv3Ramp.h"
 
 #include <clap/ext/draft/webview.h>
 #include <clap/ext/preset-load.h>
@@ -157,8 +158,13 @@ void testParameterPublication()
     check(!parameter.consumePublishedBaseOnAudioThread());
     check(parameter.baseValueForMainThread() == 3.0);
     parameter.beginRamp(5.0, 2);
+    check(parameter.nextGlobalValue() == 3.0);
+    check(parameter.currentGlobalValue() == 3.0);
     check(parameter.nextGlobalValue() == 4.0);
     check(parameter.nextGlobalValue() == 5.0);
+    check(parameter.nextGlobalValue() == 5.0);
+    parameter.beginRamp(7.0, 0);
+    check(parameter.nextGlobalValue() == 7.0);
     parameter.applyHostGlobalModulation(1.0);
     parameter.publishBaseFromMainThread(6.0);
     parameter.bind(definition);
@@ -197,6 +203,39 @@ void testParameterPublication()
     mainDone.store(true);
     audio.join();
     check(parameter.baseValueForMainThread() == -double(iterations));
+}
+
+void testTimedRampAcrossBlocks()
+{
+    mno::MNOProcessor processor;
+    check(processor.prepare(48000.0, 1, 2));
+    const auto index = static_cast<size_t>(mno::MNOParameter::cutoff);
+    auto& parameter = processor.parameter(index);
+    parameter.applyAutomatedBase(1000.0);
+
+    constexpr uint16_t rampSpace = 17;
+    const char_clap::RampEvent ramp {
+        { sizeof(char_clap::RampEvent), 1, rampSpace, char_clap::rampEventType, 0 },
+        processor.parameterDefinitions()[index].id, 2000.0, 2
+    };
+    InputEvents<1> events { { &ramp.header } };
+    InputEvents<0> noEvents;
+    const clap_output_events_t outputEvents { nullptr, discardEvent };
+    float left[2] {}, right[2] {};
+    float* channels[] { left, right };
+    clap_audio_buffer_t output { channels, nullptr, 2, 0, 0 };
+    clap_process_t process {
+        0, 2, nullptr, nullptr, &output, 0, 1, &events.interface, &outputEvents
+    };
+    check(processor.process(process, rampSpace) != CLAP_PROCESS_ERROR);
+    check(parameter.currentGlobalValue() == 1000.0); // Ramp starts at frame 1.
+    check(parameter.baseValueForMainThread() == 2000.0);
+    process.in_events = &noEvents.interface;
+    process.frames_count = 1;
+    check(processor.process(process, rampSpace) != CLAP_PROCESS_ERROR);
+    check(parameter.currentGlobalValue() == 1500.0);
+    check(processor.process(process, rampSpace) != CLAP_PROCESS_ERROR);
+    check(parameter.currentGlobalValue() == 2000.0);
 }
 
 void testMNOProcessorAndParameters()
@@ -411,6 +450,7 @@ int main()
     testFactory(example::mno_plugin::entryGetFactory(CLAP_PLUGIN_FACTORY_ID),
                 example::mno_plugin::descriptor().id);
     testParameterPublication();
+    testTimedRampAcrossBlocks();
     testMNOProcessorAndParameters();
     testMNOScopeCyclePhase();
     example::mno_plugin::entryDeinit();
