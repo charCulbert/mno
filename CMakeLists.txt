@@ -108,6 +108,8 @@ make_clapfirst_plugins(
     BUNDLE_VERSION "${PROJECT_VERSION}"
     PLUGIN_FORMATS ${formats}
     ${standalone}
+    # No WCLAP_MEMORY_MINIMUM/INITIAL/MAXIMUM: the heap stays small, so a browser
+    # host's default reservation is enough and no memory.json is packaged.
     AUV3_BUILD_STANDALONE TRUE
     AUV2_MANUFACTURER_NAME "Charlie Culbert"
     AUV2_MANUFACTURER_CODE "ChAr"

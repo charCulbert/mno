@@ -21,7 +21,10 @@ cmake --preset native && cmake --build --preset native && ctest --preset native
 WASI_SDK_ROOT=~/WASI_SDK/wasi-sdk-33.0-arm64-macos cmake --preset wclap && cmake --build --preset wclap
 ```
 
-Outputs land in `build-*/artifacts/`. To build against a sibling checkout of a
+Outputs land in `build-*/artifacts/`. The WCLAP ships without a `memory.json`
+hint, so a browser host reserves its ordinary default heap for it; if the
+plug-in ever needs more, declare `WCLAP_MEMORY_MINIMUM` / `INITIAL` /
+`MAXIMUM` on `make_clapfirst_plugins` and the wrapper packages the file. To build against a sibling checkout of a
 dependency while working on it, override its root, for example
 `-DCLAP_WRAPPER_ROOT=../../clap-wrapper` or `-DCOMPOST_ROOT=../../compost`.
 
