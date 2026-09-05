@@ -1,8 +1,8 @@
 #include "Plugin.h"
 
-#include "common/AUv3Ramp.h"
-#include "common/CLAPStreams.h"
-#include "common/WebUI.h"
+#include "char_clap_utils/AUv3Ramp.h"
+#include "char_clap_utils/Streams.h"
+#include "char_clap_utils/WebUI.h"
 
 #include "char_clap_utils/Process.h"
 
@@ -276,7 +276,7 @@ protected:
         hostState = static_cast<const clap_host_state_t*>(host->get_extension(host, CLAP_EXT_STATE));
         if (const auto* registry = static_cast<const clap_host_event_registry_t*>(
                 host->get_extension(host, CLAP_EXT_EVENT_REGISTRY)))
-            registry->query(host, common::rampEventSpaceName, &rampEventSpace);
+            registry->query(host, char_clap::rampEventSpaceName, &rampEventSpace);
         return true;
     }
 
@@ -433,14 +433,14 @@ protected:
         State state;
         for (size_t i = 0; i < mno::parameterCount; ++i)
             state.values[i] = processor.parameter(i).baseValueForMainThread();
-        return ::common::writeComplete(*stream, &state, sizeof(state));
+        return char_clap::writeComplete(*stream, &state, sizeof(state));
     }
 
     bool stateLoad(const clap_istream_t* stream) noexcept override
     {
         State state;
         if (stream == nullptr
-            || !::common::readComplete(*stream, &state, sizeof(state))
+            || !char_clap::readComplete(*stream, &state, sizeof(state))
             || state.magic != stateMagic || state.version != 1)
             return false;
         for (size_t i = 0; i < mno::parameterCount; ++i)
@@ -527,7 +527,7 @@ protected:
             {
                 if (!plugin || !ramp || !size) return false;
                 auto& self = static_cast<Plugin&>(Base::from(plugin));
-                return common::writeRampEvent(self.rampEventSpace, *ramp,
+                return char_clap::writeRampEvent(self.rampEventSpace, *ramp,
                                               storage, capacity, *size);
             }
         };
@@ -752,7 +752,7 @@ private:
     const clap_host_t* host;
     const clap_host_params_t* hostParams = nullptr;
     const clap_host_state_t* hostState = nullptr;
-    common::WebUI ui;
+    char_clap::WebUI ui;
     mno::MNOProcessor processor;
     clap::helpers::ParamQueue<Edit, 128> edits;
     std::atomic<bool> uiDirty { true };
@@ -791,8 +791,8 @@ const clap_plugin_descriptor_t& descriptor() noexcept
     return value;
 }
 
-bool entryInit(const char* path) { return common::setResourceRoot(path); }
-void entryDeinit() { common::resourceRoot.clear(); }
+bool entryInit(const char* path) { return char_clap::setResourceRoot(path); }
+void entryDeinit() { char_clap::resourceRoot.clear(); }
 
 const void* entryGetFactory(const char* factoryId)
 {
