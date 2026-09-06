@@ -88,7 +88,7 @@ void CLAP_ABI addPresetPluginId(
     auto& state = *static_cast<PresetDiscoveryState*>(receiver->receiver_data);
     state.pluginIdsValid = state.pluginIdsValid && pluginId != nullptr
         && std::strcmp(pluginId->abi, "clap") == 0
-        && std::strcmp(pluginId->id, example::mno_plugin::descriptor().id) == 0;
+        && std::strcmp(pluginId->id, mno_plugin::descriptor().id) == 0;
 }
 
 void check(bool condition)
@@ -245,7 +245,7 @@ void testMNOProcessorAndParameters()
     indexer.indexer_data = &discoveryState;
     indexer.declare_location = declarePresetLocation;
     const auto* discoveryFactory = static_cast<const clap_preset_discovery_factory_t*>(
-        example::mno_plugin::entryGetFactory(CLAP_PRESET_DISCOVERY_FACTORY_ID));
+        mno_plugin::entryGetFactory(CLAP_PRESET_DISCOVERY_FACTORY_ID));
     check(discoveryFactory != nullptr && discoveryFactory->count(discoveryFactory) == 1);
     const auto* providerDescriptor = discoveryFactory->get_descriptor(discoveryFactory, 0);
     check(providerDescriptor != nullptr);
@@ -274,9 +274,9 @@ void testMNOProcessorAndParameters()
     provider->destroy(provider);
 
     const auto* factory = static_cast<const clap_plugin_factory_t*>(
-        example::mno_plugin::entryGetFactory(CLAP_PLUGIN_FACTORY_ID));
+        mno_plugin::entryGetFactory(CLAP_PLUGIN_FACTORY_ID));
     const auto* plugin = factory->create_plugin(factory, &mnoHost,
-                                                example::mno_plugin::descriptor().id);
+                                                mno_plugin::descriptor().id);
     check(plugin != nullptr && plugin->init(plugin));
     check(plugin->activate(plugin, 48'000.0, 1, 4096));
     check(plugin->start_processing(plugin));
@@ -521,14 +521,14 @@ void testIndependentPWM()
 
 int main()
 {
-    check(example::mno_plugin::entryInit("."));
-    testFactory(example::mno_plugin::entryGetFactory(CLAP_PLUGIN_FACTORY_ID),
-                example::mno_plugin::descriptor().id);
+    check(mno_plugin::entryInit("."));
+    testFactory(mno_plugin::entryGetFactory(CLAP_PLUGIN_FACTORY_ID),
+                mno_plugin::descriptor().id);
     testParameterPublication();
     testTimedRampAcrossBlocks();
     testMNOProcessorAndParameters();
     testMNOOutputHeadroom();
     testMNOScopeCyclePhase();
     testIndependentPWM();
-    example::mno_plugin::entryDeinit();
+    mno_plugin::entryDeinit();
 }

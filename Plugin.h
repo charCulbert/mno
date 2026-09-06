@@ -2,7 +2,7 @@
 
 #include <clap/clap.h>
 
-namespace example::mno_plugin
+namespace mno_plugin
 {
 
 const clap_plugin_descriptor_t& descriptor() noexcept;
@@ -10,4 +10,4 @@ bool entryInit(const char* path);
 void entryDeinit();
 const void* entryGetFactory(const char* factoryId);
 
-} // namespace example::mno_plugin
+} // namespace mno_plugin

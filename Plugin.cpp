@@ -24,7 +24,7 @@
 #include <string>
 #include <string_view>
 
-namespace example::mno_plugin
+namespace mno_plugin
 {
 namespace
 {
@@ -789,7 +789,7 @@ const clap_plugin_descriptor_t& descriptor() noexcept
     };
     static const clap_plugin_descriptor_t value {
         CLAP_VERSION, pluginId, "MNO", "Charlie Culbert",
-        "", "", "", "0.1.0", "MNO CLAP example", features
+        "", "", "", "0.1.0", "MNO", features
     };
     return value;
 }
@@ -808,4 +808,4 @@ const void* entryGetFactory(const char* factoryId)
     return &factory;
 }
 
-} // namespace example::mno_plugin
+} // namespace mno_plugin
