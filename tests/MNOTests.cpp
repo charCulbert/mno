@@ -419,6 +419,44 @@ void testMNOProcessorAndParameters()
     plugin->destroy(plugin);
 }
 
+void testMNOOutputHeadroom()
+{
+    for (const auto sampleRate : { 44'100.0, 48'000.0, 96'000.0 })
+    {
+        for (const auto key : { 36, 51, 69, 84 })
+        {
+            mno::MNOProcessor processor;
+            processor.setScopeRing(nullptr);
+            check(processor.prepare(sampleRate, 1, 256));
+            const clap_event_note_t note {
+                { sizeof(clap_event_note_t), 0, CLAP_CORE_EVENT_SPACE_ID,
+                  CLAP_EVENT_NOTE_ON, 0 },
+                -1, 0, 0, static_cast<int16_t>(key), 1.0
+            };
+            InputEvents<1> events { { &note.header } };
+            InputEvents<0> noEvents;
+            std::array<float, 256> samples {};
+            float* channels[] { samples.data() };
+            clap_audio_buffer_t output { channels, nullptr, 1, 0, 0 };
+            clap_process_t process {
+                0, 256, nullptr, nullptr, &output, 0, 1, &events.interface, nullptr
+            };
+            float peak = 0.0f;
+            for (int frame = 0; frame < int(sampleRate * 0.25); frame += 256)
+            {
+                check(processor.process(process, 17) != CLAP_PROCESS_ERROR);
+                process.in_events = &noEvents.interface;
+                for (const auto sample : samples)
+                {
+                    check(std::isfinite(sample));
+                    peak = std::max(peak, std::abs(sample));
+                }
+            }
+            check(peak > 0.01f && peak < 0.5f);
+        }
+    }
+}
+
 void testMNOScopeCyclePhase()
 {
     mno::MNOOscillator oscillator;
@@ -452,6 +490,7 @@ int main()
     testParameterPublication();
     testTimedRampAcrossBlocks();
     testMNOProcessorAndParameters();
+    testMNOOutputHeadroom();
     testMNOScopeCyclePhase();
     example::mno_plugin::entryDeinit();
 }

@@ -597,7 +597,8 @@ public:
             const auto q = 0.5f + 0.05f * resonance;
             filter.setCutoffAndQ (cutoff, q);
 
-            const auto output = filter.process (mixed)
+            // Leave headroom for oscillator summing and resonant peaks.
+            const auto output = 0.25f * filter.process (mixed)
                               * modulation.get (
                                   MNOModulationSource::adsr1)
                               * value (MNOParameter::output);
