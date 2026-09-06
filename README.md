@@ -4,6 +4,8 @@ A monophonic synthesizer with two oscillators, envelopes, modulation, a filter,
 and a waveform display. Available as CLAP, AUv3, a macOS standalone app, and
 WCLAP for the browser.
 
+![MNO running in the browser DAW](screenshot.png)
+
 ## Build
 
 Requires CMake 3.24+, a C++17 compiler, and Ninja or Xcode. Dependencies are
