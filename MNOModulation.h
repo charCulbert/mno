@@ -118,10 +118,11 @@ inline float mnoModulatedValue (
     MNOParameter destination,
     float baseValue,
     const MNOModulationFrame& frame,
-    const std::array<float, mnoModulationSourceCount>& amounts) noexcept
+    const std::array<float, mnoModulationSourceCount>& amounts,
+    float directContribution = 0.0f) noexcept
 {
-    float contribution = 0.0f;
-    bool hasRoute = false;
+    auto contribution = directContribution;
+    auto hasRoute = directContribution != 0.0f;
 
     for (size_t index = 0; index < mnoModulationSourceCount; ++index)
     {

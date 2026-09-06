@@ -461,6 +461,8 @@ public:
         noteVelocity.reset (0.0f);
         lfo1Phase = 0.0f;
         lfo2Phase = 0.0f;
+        osc1PWMPhase = 0.0f;
+        osc2PWMPhase = 0.0f;
         adsr1Display.reset();
         adsr2Display.reset();
         latestModulationState.store ({});
@@ -506,6 +508,12 @@ public:
             lfo2Phase +=
                 value (MNOParameter::lfo2Rate) / sampleRate;
             lfo2Phase -= std::floor (lfo2Phase);
+            osc1PWMPhase +=
+                value (MNOParameter::osc1PWMRate) / sampleRate;
+            osc1PWMPhase -= std::floor (osc1PWMPhase);
+            osc2PWMPhase +=
+                value (MNOParameter::osc2PWMRate) / sampleRate;
+            osc2PWMPhase -= std::floor (osc2PWMPhase);
 
             const auto rawLFO1 = lfoSample (
                 lfo1Phase,
@@ -541,7 +549,9 @@ public:
                 }
             };
 
-            const auto modulated = [&] (MNOParameter destination)
+            const auto modulated = [&] (
+                MNOParameter destination,
+                float directContribution = 0.0f)
             {
                 const auto& routes = mnoModulationRoutes (destination);
                 if (! routes.isRoutable)
@@ -556,7 +566,8 @@ public:
                     destination,
                     value (destination),
                     modulation,
-                    amounts);
+                    amounts,
+                    directContribution);
             };
 
             const auto pitch = portamento.next()
@@ -569,7 +580,10 @@ public:
             const auto frequency2 = frequency * centsRatio (
                 modulated (MNOParameter::osc2Tune));
 
-            const auto osc1Shape = modulated (MNOParameter::osc1Shape);
+            const auto osc1Shape = modulated (
+                MNOParameter::osc1Shape,
+                lfoSample (osc1PWMPhase, 0.0f)
+                    * value (MNOParameter::osc1PWMDepth) * 0.01f);
             const auto first = oscillator1.next (
                 frequency1,
                 std::nullopt,
@@ -579,7 +593,10 @@ public:
                 && first.trigger > 0.5f)
                 sync = first.wrapOffset;
 
-            const auto osc2Shape = modulated (MNOParameter::osc2Shape);
+            const auto osc2Shape = modulated (
+                MNOParameter::osc2Shape,
+                lfoSample (osc2PWMPhase, 0.0f)
+                    * value (MNOParameter::osc2PWMDepth) * 0.01f);
             const auto second = oscillator2.next (
                 frequency2,
                 sync,
@@ -991,6 +1008,8 @@ private:
     float pitchBend = 0.0f;
     float lfo1Phase = 0.0f;
     float lfo2Phase = 0.0f;
+    float osc1PWMPhase = 0.0f;
+    float osc2PWMPhase = 0.0f;
     MNOADSRDisplayTracker adsr1Display;
     MNOADSRDisplayTracker adsr2Display;
     MNOModulationSnapshot latestModulationState;

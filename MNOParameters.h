@@ -84,6 +84,12 @@ enum class MNOParameter : std::size_t
     adsr2ToOsc2Level,
     adsr2ToCutoff,
     adsr2ToResonance,
+
+    // Appended to preserve all existing parameter IDs.
+    osc1PWMRate,
+    osc1PWMDepth,
+    osc2PWMRate,
+    osc2PWMDepth,
     count
 };
 
@@ -311,7 +317,20 @@ inline constexpr std::array mnoParameterEndpoints
         sampleAccurate),
     mnoParameter (
         "adsr2ToResonance", "ADSR 2 to Resonance", " %", -100, 100, 0,
-        0.1f, sampleAccurate)
+        0.1f, sampleAccurate),
+
+    mnoParameter (
+        "osc1PWMRate", "PWM Rate", " Hz", 0.01f, 40, 0.5f, 0.001f,
+        sampleAccurate, {}, MNOParameterScale::logarithmic),
+    mnoParameter (
+        "osc1PWMDepth", "PWM Depth", " %", -100, 100, 0, 0.1f,
+        sampleAccurate),
+    mnoParameter (
+        "osc2PWMRate", "PWM Rate", " Hz", 0.01f, 40, 0.5f, 0.001f,
+        sampleAccurate, {}, MNOParameterScale::logarithmic),
+    mnoParameter (
+        "osc2PWMDepth", "PWM Depth", " %", -100, 100, 0, 0.1f,
+        sampleAccurate)
 };
 
 struct MNOParameterPresentation
@@ -390,6 +409,11 @@ inline constexpr std::array mnoParameterPresentation
     MNOParameterPresentation { 0.0f, true },
     MNOParameterPresentation { 0.0f, true },
     MNOParameterPresentation { 0.0f, true },
+    MNOParameterPresentation { 0.0f, true },
+
+    MNOParameterPresentation { 2.0f, true },
+    MNOParameterPresentation { 0.0f, true },
+    MNOParameterPresentation { 2.0f, true },
     MNOParameterPresentation { 0.0f, true }
 };
 

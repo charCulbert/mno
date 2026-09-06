@@ -15,15 +15,13 @@ const pageNames = {
   adsr1: 'Envelope', lfo: 'LFO', keyboard: 'Keyboard'
 };
 const pageParameters = {
-  osc1: ['osc1Shape', 'osc1Tune', 'osc1Level', 'lfoRate', 'lfoToOsc1Shape', 'lfoToOsc1Tune'],
-  osc2: ['osc2Shape', 'osc2Tune', 'osc2Level', 'lfoRate', 'lfoToOsc2Shape', 'lfoToOsc2Tune'],
+  osc1: ['osc1Shape', 'osc1Tune', 'osc1Level', 'osc1PWMRate', 'osc1PWMDepth', 'lfoToOsc1Tune'],
+  osc2: ['osc2Shape', 'osc2Tune', 'osc2Level', 'osc2PWMRate', 'osc2PWMDepth', 'lfoToOsc2Tune'],
   filter: ['cutoff', 'resonance', 'adsrToCutoff', 'lfoToCutoff'],
   adsr1: ['velocitySensitivity', 'attack', 'decay', 'sustain', 'release'],
   keyboard: ['glideTime', 'glideShape', 'glideTimeRateMorph', 'pitchBendRange']
 };
 const controlLabels = {
-  lfoRate: 'PWM Rate',
-  lfoToOsc1Shape: 'PWM Depth', lfoToOsc2Shape: 'PWM Depth',
   lfoToOsc1Tune: 'LFO Amount', lfoToOsc2Tune: 'LFO Amount',
   adsrToCutoff: 'Env Amount', lfoToCutoff: 'LFO Amount'
 };

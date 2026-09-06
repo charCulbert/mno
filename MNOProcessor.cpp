@@ -53,6 +53,12 @@ constexpr const char* module (MNOParameter parameter) noexcept
     if (parameter == MNOParameter::cutoff
         || parameter == MNOParameter::resonance)
         return "Filter";
+    if (parameter == MNOParameter::osc1PWMRate
+        || parameter == MNOParameter::osc1PWMDepth)
+        return "Oscillator 1";
+    if (parameter == MNOParameter::osc2PWMRate
+        || parameter == MNOParameter::osc2PWMDepth)
+        return "Oscillator 2";
     if (index >= static_cast<std::size_t> (MNOParameter::lfoToOsc1Tune))
         return "Modulation";
     return "Performance";

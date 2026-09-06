@@ -480,6 +480,43 @@ void testMNOScopeCyclePhase()
     check(boundaries == 5);
 }
 
+void testIndependentPWM()
+{
+    mno::MNOProcessor processor;
+    processor.setScopeRing(nullptr);
+    check(processor.prepare(48'000.0, 1, 1200));
+
+    const auto set = [&] (mno::MNOParameter parameter, double value)
+    {
+        processor.parameter(static_cast<size_t>(parameter))
+            .applyAutomatedBase(value);
+    };
+    set(mno::MNOParameter::osc1Waveform, 2.0);
+    set(mno::MNOParameter::osc2Waveform, 2.0);
+    set(mno::MNOParameter::osc1Shape, 0.5);
+    set(mno::MNOParameter::osc2Shape, 0.5);
+    set(mno::MNOParameter::osc1PWMRate, 10.0);
+    set(mno::MNOParameter::osc2PWMRate, 5.0);
+    set(mno::MNOParameter::osc1PWMDepth, 25.0);
+    set(mno::MNOParameter::osc2PWMDepth, 25.0);
+    set(mno::MNOParameter::lfoRate, 40.0);
+
+    InputEvents<0> noEvents;
+    std::array<float, 1200> samples {};
+    float* channels[] { samples.data() };
+    clap_audio_buffer_t output { channels, nullptr, 1, 0, 0 };
+    const clap_process_t process {
+        0, static_cast<uint32_t>(samples.size()), nullptr, nullptr,
+        &output, 0, 1, &noEvents.interface, nullptr
+    };
+    check(processor.process(process, 17) != CLAP_PROCESS_ERROR);
+
+    const auto modulation = processor.getModulationState();
+    check(std::min(modulation.lfoPhase, 1.0f - modulation.lfoPhase) < 0.001f);
+    check(std::abs(
+        modulation.osc1Shape - modulation.osc2Shape - 0.07029f) < 0.002f);
+}
+
 } // namespace
 
 int main()
@@ -492,5 +529,6 @@ int main()
     testMNOProcessorAndParameters();
     testMNOOutputHeadroom();
     testMNOScopeCyclePhase();
+    testIndependentPWM();
     example::mno_plugin::entryDeinit();
 }
