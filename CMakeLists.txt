@@ -77,7 +77,17 @@ target_link_libraries(mno-impl PUBLIC
     clap-wrapper-extensions
     chardsp::chardsp)
 char_clap_add_native_webview(mno-impl "${CLAP_WRAPPER_CHOC_ROOT}")
-add_dependencies(mno-impl mno-resources)
+add_custom_target(mno-licenses
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" "${mno_RESOURCE_DIRECTORY}/LICENSE"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md" "${mno_RESOURCE_DIRECTORY}/THIRD_PARTY_NOTICES.md"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${mno_RESOURCE_DIRECTORY}/THIRD_PARTY_LICENSES"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_LICENSES" "${mno_RESOURCE_DIRECTORY}/THIRD_PARTY_LICENSES"
+    DEPENDS mno-resources
+    VERBATIM)
+add_dependencies(mno-impl mno-licenses)
 
 if(ANY_WASM_TOOLCHAIN)
     set(formats WCLAP)
@@ -113,20 +123,7 @@ make_clapfirst_plugins(
     ASSET_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/artifacts"
     COPY_AFTER_BUILD FALSE)
 
-if(ANY_WASM_TOOLCHAIN)
-    add_custom_target(mno-stage-wclap-resources ALL
-        COMMAND ${CMAKE_COMMAND} -E rm -rf
-            "${CMAKE_CURRENT_BINARY_DIR}/artifacts/${MNO_OUTPUT_NAME}.wclap/ui"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${mno_RESOURCE_DIRECTORY}"
-            "${CMAKE_CURRENT_BINARY_DIR}/artifacts/${MNO_OUTPUT_NAME}.wclap"
-        COMMAND ${CMAKE_COMMAND} -E tar cfz
-            "${CMAKE_CURRENT_BINARY_DIR}/artifacts/${MNO_OUTPUT_NAME}.wclap.tar.gz"
-            --format=gnutar module.wasm ui
-        DEPENDS mno_wclap
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/artifacts/${MNO_OUTPUT_NAME}.wclap"
-        VERBATIM)
-endif()
+
 
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
     add_executable(mno_ios_host Entry.cpp)
