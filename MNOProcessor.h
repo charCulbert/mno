@@ -614,11 +614,14 @@ public:
             const auto q = 0.5f + 0.05f * resonance;
             filter.setCutoffAndQ (cutoff, q);
 
-            // Leave headroom for oscillator summing and resonant peaks.
-            const auto output = 0.25f * filter.process (mixed)
-                              * modulation.get (
-                                  MNOModulationSource::adsr1)
-                              * value (MNOParameter::output);
+            const auto scopeOutput = filter.process (mixed)
+                                   * modulation.get (
+                                       MNOModulationSource::adsr1)
+                                   * value (MNOParameter::output);
+            // Leave headroom for oscillator summing and resonant peaks without
+            // shrinking the synth's own waveform display.
+            constexpr auto outputHeadroom = 0.25f;
+            const auto output = outputHeadroom * scopeOutput;
 
             blockModulationState = {
                 lfo1Phase,
@@ -672,7 +675,7 @@ public:
 
                 if (scopeRing != nullptr)
                     scopeRing->push (
-                        output,
+                        scopeOutput,
                         delayScopeTrigger (
                             scopeTrigger,
                             scopeUsesOscillator2

@@ -426,7 +426,6 @@ void testMNOOutputHeadroom()
         for (const auto key : { 36, 51, 69, 84 })
         {
             mno::MNOProcessor processor;
-            processor.setScopeRing(nullptr);
             check(processor.prepare(sampleRate, 1, 256));
             const clap_event_note_t note {
                 { sizeof(clap_event_note_t), 0, CLAP_CORE_EVENT_SPACE_ID,
@@ -442,6 +441,7 @@ void testMNOOutputHeadroom()
                 0, 256, nullptr, nullptr, &output, 0, 1, &events.interface, nullptr
             };
             float peak = 0.0f;
+            float steadyPeak = 0.0f;
             for (int frame = 0; frame < int(sampleRate * 0.25); frame += 256)
             {
                 check(processor.process(process, 17) != CLAP_PROCESS_ERROR);
@@ -450,9 +450,26 @@ void testMNOOutputHeadroom()
                 {
                     check(std::isfinite(sample));
                     peak = std::max(peak, std::abs(sample));
+                    if (frame >= int(sampleRate * 0.125))
+                        steadyPeak = std::max(steadyPeak, std::abs(sample));
                 }
             }
             check(peak > 0.01f && peak < 0.5f);
+
+            std::array<float, mno::MNOScopeRing::capacity> scope {};
+            const auto scopeSize = processor.copyScope(
+                scope.data(), static_cast<int>(scope.size()));
+            check(scopeSize > 0);
+            float scopePeak = 0.0f;
+            for (int index = 0; index < scopeSize; ++index)
+            {
+                check(std::isfinite(scope[static_cast<size_t>(index)]));
+                scopePeak = std::max(
+                    scopePeak,
+                    std::abs(scope[static_cast<size_t>(index)]));
+            }
+            check(scopePeak > steadyPeak * 3.5f
+                  && scopePeak < steadyPeak * 4.5f);
         }
     }
 }
