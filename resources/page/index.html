@@ -96,7 +96,8 @@
     compost-knob.route::part(cap) { border-color: var(--src); }
     .mod-knob.drop-target compost-knob::part(dial) { outline: 1px dashed var(--src); outline-offset: 6px; }
     .drag-ghost { position: fixed; z-index: 10; width: 10px; height: 10px; margin: -5px 0 0 -5px; background: var(--src); pointer-events: none; }
-    .glyph { display: block; height: 32px; margin: 0 auto 1px; }
+    /* the icons redraw every frame, so a press must land on the button, not on them */
+    .glyph { display: block; height: 32px; margin: 0 auto 1px; pointer-events: none; }
     .glyph path, .glyph polyline, .glyph line {
       fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
     }
